@@ -3,6 +3,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 =======
 =======
@@ -56,6 +57,10 @@ March 30, 2024:
 
 March 23, 2024:
 - Update for test patch
+=======
+March 27, 2024:
+- Updated emu client to catch it up with the latest features
+>>>>>>> 5e5a685f (Update eqlib)
 
 March 13, 2024:
 - Update for live patch
