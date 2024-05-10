@@ -197,9 +197,6 @@ jobs:
           Copy-Item -Force "data/resources/CHANGELOG.md" "${{ github.workspace }}/changelog/CHANGELOG.md"
           echo "::set-output name=release_description::$ReleaseDescription"
 
-      - name: Setup GitHub CLI
-        uses: actions/setup-cli@v3
-
       - name: Remove Release 'rel-${{ inputs.client_target }}'
         env:
           GITHUB_TOKEN: ${{ secrets.MQGITBOT_AUTH }}
