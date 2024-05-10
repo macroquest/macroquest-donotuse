@@ -18,6 +18,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Update builtin submodules
+        run: git submodule update --init --recursive --depth=1
+
       - name: Get extra plugins from docs site
         shell: pwsh
         run: |
@@ -64,8 +67,10 @@ jobs:
             }
           }
 
-      - name: Update Submodules
-        run: git submodule update --init --recursive --depth=1
+      - name: Update Plugin Submodules
+        shell:
+        run: |
+          Get-ChildItem plugins -Directory | ForEach-Object { git -C "$_.Parent.FullName" submodule update --init --recursive --depth=1 }
 
       - name: Get SLN file from docs site
         shell: pwsh
