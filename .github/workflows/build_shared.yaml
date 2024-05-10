@@ -70,7 +70,7 @@ jobs:
       - name: Update Plugin Submodules
         shell: pwsh
         run: |
-          Get-ChildItem plugins -Directory | ForEach-Object { git -C "$($_.Parent.FullName)" submodule update --init --recursive --depth=1 }
+          Get-ChildItem plugins -Directory | ForEach-Object { Write-Host "$($_.Name)"; git -C "$($_.FullName)" submodule update --init --recursive --depth=1 }
 
       - name: Get SLN file from docs site
         shell: pwsh
