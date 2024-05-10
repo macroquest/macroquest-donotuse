@@ -30,7 +30,7 @@ jobs:
         shell: pwsh
         run: |
           $start = Select-String -Path plugin-quick-list.md -Pattern "^# All" -CaseSensitive
-          $end = Select-String -Path plugin-quick-list.md -Pattern "^(#|`)" -CaseSensitive | Where-Object { $_.LineNumber -gt $start.LineNumber } | Select-Object -First 1
+          $end = Select-String -Path plugin-quick-list.md -Pattern "^(#|``)" -CaseSensitive | Where-Object { $_.LineNumber -gt $start.LineNumber } | Select-Object -First 1
           $content = Get-Content plugin-quick-list.md | Select-Object -Index ($start.LineNumber..($end.LineNumber - 2))
           $content | ForEach-Object {
             $cmd = $_.Trim()
@@ -44,7 +44,7 @@ jobs:
         shell: pwsh
         run: |
           $start = Select-String -Path plugin-quick-list.md -Pattern "^# Live/Test only" -CaseSensitive
-          $end = Select-String -Path plugin-quick-list.md -Pattern "^(#|`)" | Where-Object { $_.LineNumber -gt $start.LineNumber } | Select-Object -First 1
+          $end = Select-String -Path plugin-quick-list.md -Pattern "^(#|``)" | Where-Object { $_.LineNumber -gt $start.LineNumber } | Select-Object -First 1
           $content = Get-Content plugin-quick-list.md | Select-Object -Index ($start.LineNumber..($end.LineNumber - 2))
           $content | ForEach-Object {
             $cmd = $_.Trim()
@@ -58,7 +58,7 @@ jobs:
         shell: pwsh
         run: |
           $start = Select-String -Path plugin-quick-list.md -Pattern "^# Emu only" -CaseSensitive
-          $end = Select-String -Path plugin-quick-list.md -Pattern "^(#|`)" | Where-Object { $_.LineNumber -gt $start.LineNumber } | Select-Object -First 1
+          $end = Select-String -Path plugin-quick-list.md -Pattern "^(#|``)" | Where-Object { $_.LineNumber -gt $start.LineNumber } | Select-Object -First 1
           $content = Get-Content plugin-quick-list.md | Select-Object -Index ($start.LineNumber..($end.LineNumber - 2))
           $content | ForEach-Object {
             $cmd = $_.Trim()
@@ -117,6 +117,7 @@ jobs:
           msbuild-architecture: x64
 
       - name: Restore NuGet packages
+        uses: nuget/setup-nuget@v2
         run: |
           nuget restore src/MacroQuestCustom.sln
 
