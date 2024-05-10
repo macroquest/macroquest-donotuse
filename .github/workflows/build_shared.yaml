@@ -63,7 +63,8 @@ jobs:
           $content | ForEach-Object {
             $cmd = $_.Trim()
             if ($cmd.StartsWith("git clone")) {
-              Invoke-Expression $cmd --depth=1
+              $cmd = $cmd -replace "git clone", "git clone --depth=1"
+              Invoke-Expression $cmd
             }
           }
 
