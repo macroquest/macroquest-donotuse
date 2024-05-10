@@ -1,0 +1,246 @@
+name: Build Shared
+
+on:
+  workflow_call:
+    inputs:
+      client_target:
+        required: true
+        type: string
+
+env:
+  platform: "${{ inputs.client_target == 'emu' && 'Win32' || 'x64' }}"
+
+jobs:
+  build:
+    if: github.repository == 'macroquest/macroquest'
+    runs-on: [fast, self-hosted, Windows, X64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Checkout builtin submodules
+        run: git submodule update --init --recursive --depth=1
+
+      - name: Get extra plugins from docs site
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/macroquest/docs/master/main/plugin-quick-list.md" -OutFile "plugin-quick-list.md"
+
+      - name: Checkout plugins that work on all clients
+        shell: pwsh
+        run: |
+          $start = Select-String -Path plugin-quick-list.md -Pattern "^# All" -CaseSensitive
+          $end = Select-String -Path plugin-quick-list.md -Pattern "^(#|`)" -CaseSensitive | Where-Object { $_.LineNumber -gt $start.LineNumber } | Select-Object -First 1
+          $content = Get-Content plugin-quick-list.md | Select-Object -Index ($start.LineNumber..($end.LineNumber - 2))
+          $content | ForEach-Object {
+            $cmd = $_.Trim()
+            if ($cmd.StartsWith("git clone")) {
+              Invoke-Expression $cmd
+            }
+          }
+
+      - name: Checkout plugins that work on Live/Test clients
+        if: ${{ inputs.client_target == 'live' || inputs.client_target == 'test' }}
+        shell: pwsh
+        run: |
+          $start = Select-String -Path plugin-quick-list.md -Pattern "^# Live/Test only" -CaseSensitive
+          $end = Select-String -Path plugin-quick-list.md -Pattern "^(#|`)" | Where-Object { $_.LineNumber -gt $start.LineNumber } | Select-Object -First 1
+          $content = Get-Content plugin-quick-list.md | Select-Object -Index ($start.LineNumber..($end.LineNumber - 2))
+          $content | ForEach-Object {
+            $cmd = $_.Trim()
+            if ($cmd.StartsWith("git clone")) {
+              Invoke-Expression $cmd
+            }
+          }
+
+      - name: Checkout plugins that work on Emu clients
+        if: ${{ inputs.client_target == 'emu' }}
+        shell: pwsh
+        run: |
+          $start = Select-String -Path plugin-quick-list.md -Pattern "^# Emu only" -CaseSensitive
+          $end = Select-String -Path plugin-quick-list.md -Pattern "^(#|`)" | Where-Object { $_.LineNumber -gt $start.LineNumber } | Select-Object -First 1
+          $content = Get-Content plugin-quick-list.md | Select-Object -Index ($start.LineNumber..($end.LineNumber - 2))
+          $content | ForEach-Object {
+            $cmd = $_.Trim()
+            if ($cmd.StartsWith("git clone")) {
+              Invoke-Expression $cmd
+            }
+          }
+
+      - name: Get SLN file from docs site
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/macroquest/docs/master/uploads/MacroQuestCustom.sln" -OutFile "src/MacroQuestCustom.sln"
+
+      - name: Get crashpad.h
+        shell: pwsh
+        run: |
+          $headers = @{
+            Authorization = "token ${{ secrets.MQGITBOT_AUTH }}"
+            Accept = "application/vnd.github.v3.raw"
+          }
+          Invoke-WebRequest -Uri ${{ variables.CUSTOM_CRASHPAD_URL }} -Headers $headers -OutFile "include/config/crashpad.h"
+
+      - name: Set Versioning for MQMain
+        shell: pwsh
+        run: |
+          $versionFile = "src/main/MQVersionInfo.h"
+          $versionInfo = Get-Content $versionFile
+          $versionInfo = $versionInfo -replace '#define MQMAIN_VERSION_BUILD (\d+)', "#define MQMAIN_VERSION_BUILD ${{ github.run_number }}"
+          $versionInfo = $versionInfo -replace '#define MQMAIN_GIT_HASH "(.*)"', "#define MQMAIN_GIT_HASH `"$(git rev-parse --short HEAD)`""
+          $versionInfo | Set-Content $versionFile
+
+      - name: Set Versioning for eqlib
+        shell: pwsh
+        run: |
+          $versionFile = "src/eqlib/eqlibVersionInfo.h"
+          $versionInfo = Get-Content $versionFile
+          $versionInfo = $versionInfo -replace '#define EQLIB_GIT_HASH "(.*)"', "#define EQLIB_GIT_HASH `"$eqlibCommitHash`""
+          $versionInfo | Set-Content $versionFile
+
+      - name: Customize Loader Update URL
+        shell: pwsh
+        run: |
+          $CurrentVersionURL = "https://raw.githubusercontent.com/macroquest/MQCurrentVersions/${{ inputs.client_target }}/CurrentVersion.txt"
+          $resourceFilePath = "src/loader/resource.h"
+          $resourceFile = Get-Content $resourceFilePath
+          if ($resourceFile -match "#define MQ_UPDATE_URL") {
+            $resourceFile -replace '#define MQ_UPDATE_URL (.*)', "#define MQ_UPDATE_URL `"$CurrentVersionURL`""
+          } else {
+            $resourceFile = $resourceFile + "`n#define MQ_UPDATE_URL `"$CurrentVersionURL`""
+          }
+          $resourceFile | Set-Content $resourceFilePath
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.1
+        with:
+          msbuild-architecture: x64
+
+      - name: Restore NuGet packages
+        run: |
+          nuget restore src/MacroQuestCustom.sln
+
+      - name: Handle vcpkg Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            contrib/vcpkg/buildtrees
+            contrib/vcpkg/downloads
+            contrib/vcpkg/installed
+            contrib/vcpkg/packages
+            contrib/vcpkg/vcpkg.exe
+            contrib/vcpkg/vcpkg_mq_last_bootstrap*.txt
+          key: ${{ runner.os }}-vcpkg-${{ env.platform }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-${{ env.platform }}-
+            ${{ runner.os }}-vcpkg-
+
+      - name: Build ${{ env.platform }} Release for ${{ inputs.client_target }}
+        run: msbuild src/MacroQuestCustom.sln /NoLogo /Verbosity:minimal /p:Configuration=Release /p:Platform=${{ env.platform }}
+
+      - name: Create Symbols Archive
+        run: 7z a -tzip -r build/bin/MacroQuest-Symbols.zip build/bin/Release/*.exe build/bin/Release/*.dll build/bin/Release/*.pdb
+
+      - name: Upload Symbols Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: symbols-${{ inputs.client_target }}
+          path: build/bin/MacroQuest-Symbols.zip
+
+      - name: Remove Build Artifacts
+        shell: pwsh
+        run: |
+          Remove-Item -Force build/bin/MacroQuest-Symbols.zip
+          Remove-Item -Recurse -Force build/bin/Release/*.pdb
+          Remove-Item -Recurse -Force build/bin/Release/*.lib
+          Remove-Item -Recurse -Force build/bin/Release/*.exp
+
+      - name: Sign Code
+        shell: pwsh
+        run: |
+          $SignCert = "build/bin/signcert.pfx"
+          [IO.File]::WriteAllBytes($SignCert, [Convert]::FromBase64String("${{ secrets.SIGNCERT }}"))
+          $FileList = Get-ChildItem -Path "$ReleasePath/distribution" -Recurse -Include *.exe, *.dll | Where-Object { $_.Name -ne "D3DX9_43.dll" }
+          $signtool = (Get-ChildItem -Recurse "${ENV:ProgramFiles(x86)}\Windows Kits" -Filter signtool.exe | Where-Object { $_.FullName -notmatch 'arm' } | Sort-Object LastWriteTime | Select-Object -last 1).FullName
+          ForEach ($file in $FileList) {
+            & $signtool sign /fd SHA256 /f "$SignCert" /p "${{ secrets.SIGNCERT_PASS }}"" /t http://timestamp.digicert.com "$file" | Out-Null
+          }
+          Remove-Item -Force build/bin/signcert.pfx
+
+      - name: Create MacroQuest Archive
+        run: 7z a -tzip -r build/bin/MacroQuest.zip build/bin/Release/*
+
+      - name: Get Version Information
+        shell: pwsh
+        run: echo "MQVERSION_INFO=$((Get-Item build/bin/release/MQ2Main.dll).VersionInfo.FileVersion)" >> $GITHUB_ENV
+
+      - name: Restore Last Changelog
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/changelog/CHANGELOG.md
+          key: changelog-${{ env.platform }}-${{ inputs.client_target }}-${{ github.run_id }}
+          restore-keys: |
+            changelog-${{ env.platform }}-${{ inputs.client_target }}
+
+      - name: Diff Changelog
+        id: diff_changelog
+        shell: pwsh
+        run: |
+          $ReleaseDescription = "Automated release for ${{ inputs.client_target }}"
+          $FileDiff = (Compare-Object (Get-Content "data/resources/CHANGELOG.md") (Get-Content "${{ github.workspace }}/changelog/CHANGELOG.md"))
+          if ($FileDiff.Count -gt 0) {
+              if ($FileDiff[0].SideIndicator -eq '<=') {
+                  $ReleaseDescription = "Change Log:`r`n-----------`r`n"
+                  $ReleaseDescription += $FileDiff.InputObject -join "`r`n`r`n"
+              }
+          }
+          Copy-Item -Force "data/resources/CHANGELOG.md" "${{ github.workspace }}/changelog/CHANGELOG.md"
+          echo "::set-output name=release_description::$ReleaseDescription"
+
+      - name: Setup GitHub CLI
+        uses: actions/setup-cli@v3
+
+      - name: Remove Release 'rel-${{ inputs.client_target }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.MQGITBOT_AUTH }}
+        run: |
+          gh release delete rel-${{ inputs.client_target }} --yes
+
+      - name: Create Release for ${{ inputs.client_target }}
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MQGITBOT_AUTH }}
+        with:
+          tag_name: rel-${{ inputs.client_target }}
+          release_name: MacroQuest (${{ inputs.client_target }} server) v${{ env.MQVERSION_INFO }}
+          body: ${{ steps.diff_changelog.outputs.release_description }}
+          draft: false
+          prerelease: ${{ inputs.client_target != 'live' }}
+
+      - name: Upload Release for ${{ inputs.client_target }}
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MQGITBOT_AUTH }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: build/bin/MacroQuest.zip
+          asset_name: MacroQuest.zip
+          asset_content_type: application/zip
+
+      - name: Update Published Version Information
+        shell: pwsh
+        run: |
+          $versionDir = "${{ github.workspace }}/MQCurrentVersions"
+          git clone "https://x-access-token:${{ secrets.MQGITBOT_AUTH }}@github.com/MacroQuest/MQCurrentVersions.git" "$versionDir"
+          git -C "$versionDir" config user.email "mqgitbot@gmail.com"
+          git -C "$versionDir" config user.name "MQGitBot"
+          git -C "$versionDir" checkout ${{ inputs.client_target }}
+          $branch_name = git -C "$versionDir" rev-parse --abbrev-ref HEAD
+          if ($branch_name -ne "${{ inputs.client_target }}") {
+            throw "Failed to checkout branch ${{ inputs.client_target }}"
+          }
+          Set-Content -NoNewLine -Path "$versionDir/CurrentVersion.txt" -Value $env:MQVERSION_INFO
+          git -C "$versionDir" add CurrentVersion.txt
+          git -C "$versionDir" commit -m "Update ${{ inputs.client_target }} version to $($env:MQVERSION_INFO)"
+          git -C "$versionDir" push
