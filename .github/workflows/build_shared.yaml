@@ -118,7 +118,7 @@ jobs:
           $resourceFile | Set-Content $resourceFilePath
 
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v1.1
+        uses: microsoft/setup-msbuild@v2
         with:
           msbuild-architecture: x64
 
@@ -130,7 +130,7 @@ jobs:
           nuget restore src/MacroQuestCustom.sln
 
       - name: Handle vcpkg Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             contrib/vcpkg/buildtrees
@@ -184,7 +184,7 @@ jobs:
         run: echo "MQVERSION_INFO=$((Get-Item build/bin/release/MQ2Main.dll).VersionInfo.FileVersion)" >> $GITHUB_ENV
 
       - name: Restore Last Changelog
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/changelog/CHANGELOG.md
           key: changelog-${{ env.platform }}-${{ inputs.client_target }}-${{ github.run_id }}
