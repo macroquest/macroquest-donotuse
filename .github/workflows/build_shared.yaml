@@ -79,7 +79,7 @@ jobs:
             Authorization = "token ${{ secrets.MQGITBOT_AUTH }}"
             Accept = "application/vnd.github.v3.raw"
           }
-          Invoke-WebRequest -Uri ${{ variables.CUSTOM_CRASHPAD_URL }} -Headers $headers -OutFile "include/config/crashpad.h"
+          Invoke-WebRequest -Uri ${{ vars.CUSTOM_CRASHPAD_URL }} -Headers $headers -OutFile "include/config/crashpad.h"
 
       - name: Set Versioning for MQMain
         shell: pwsh
