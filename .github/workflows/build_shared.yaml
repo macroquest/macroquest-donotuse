@@ -68,7 +68,7 @@ jobs:
           }
 
       - name: Update Plugin Submodules
-        shell:
+        shell: pwsh
         run: |
           Get-ChildItem plugins -Directory | ForEach-Object { git -C "$_.Parent.FullName" submodule update --init --recursive --depth=1 }
 
