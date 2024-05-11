@@ -236,7 +236,7 @@ jobs:
             --title "MacroQuest (${{ inputs.client_target }} server) v$($env:MQVERSION_INFO)" `
             --notes "${{ steps.diff_changelog.outputs.release_description }}" `
             --draft "false" `
-            --prerelease "${{ inputs.client_target != 'live' }}"
+            --prerelease "${{ inputs.client_target != 'live' }}" `
             --json
           $releaseData = $output | ConvertFrom-Json
           "upload_url=$($releaseData.upload_url)" >> $env:GITHUB_OUTPUT
