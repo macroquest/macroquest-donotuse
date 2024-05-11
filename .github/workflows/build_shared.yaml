@@ -196,12 +196,15 @@ jobs:
         shell: pwsh
         run: |
           $ReleaseDescription = "Automated release for ${{ inputs.client_target }}"
-          $FileDiff = (Compare-Object (Get-Content "data/resources/CHANGELOG.md") (Get-Content "${{ github.workspace }}/changelog/CHANGELOG.md"))
-          if ($FileDiff.Count -gt 0) {
-              if ($FileDiff[0].SideIndicator -eq '<=') {
-                  $ReleaseDescription = "Change Log:`r`n-----------`r`n"
-                  $ReleaseDescription += $FileDiff.InputObject -join "`r`n`r`n"
-              }
+          if (Test-Path "data/resources/CHANGELOG.md" && Test-Path "${{ github.workspace }}/changelog/CHANGELOG.md")
+          {
+            $FileDiff = (Compare-Object (Get-Content "data/resources/CHANGELOG.md") (Get-Content "${{ github.workspace }}/changelog/CHANGELOG.md"))
+            if ($FileDiff.Count -gt 0) {
+                if ($FileDiff[0].SideIndicator -eq '<=') {
+                    $ReleaseDescription = "Change Log:`r`n-----------`r`n"
+                    $ReleaseDescription += $FileDiff.InputObject -join "`r`n`r`n"
+                }
+            }
           }
           Copy-Item -Force "data/resources/CHANGELOG.md" "${{ github.workspace }}/changelog/CHANGELOG.md"
           echo "::set-output name=release_description::$ReleaseDescription"
