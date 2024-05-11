@@ -208,7 +208,11 @@ jobs:
                 }
             }
           }
-          Copy-Item -Force "data/resources/CHANGELOG.md" "${{ github.workspace }}/changelog/CHANGELOG.md"
+          else
+          {
+            New-Item -Path "${{ github.workspace }}/changelog" -ItemType Directory -ErrorAction SilentlyContinue
+          }
+          Copy-Item -Path "data/resources/CHANGELOG.md" -Destination "${{ github.workspace }}/changelog/CHANGELOG.md" -Force
           echo "::set-output name=release_description::$ReleaseDescription"
 
       - name: Remove Release 'rel-${{ inputs.client_target }}'
