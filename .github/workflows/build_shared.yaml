@@ -181,7 +181,7 @@ jobs:
 
       - name: Get Version Information
         shell: pwsh
-        run: echo "MQVERSION_INFO=$((Get-Item build/bin/release/MQ2Main.dll).VersionInfo.FileVersion)" >> $GITHUB_ENV
+        run: echo "MQVERSION_INFO=$((Get-Item build/bin/release/MQ2Main.dll).VersionInfo.FileVersion)" >> $env:GITHUB_ENV
 
       - name: Restore Last Changelog
         uses: actions/cache@v4
@@ -232,11 +232,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.MQGITBOT_AUTH }}
         run: |
-          gh release create rel-${{ inputs.client_target }} `
-            --title "MacroQuest (${{ inputs.client_target }} server) v${{ env.MQVERSION_INFO }}" `
+          $output = gh release create rel-${{ inputs.client_target }} `
+            --title "MacroQuest (${{ inputs.client_target }} server) v$($env:MQVERSION_INFO)" `
             --notes "${{ steps.diff_changelog.outputs.release_description }}" `
-            --draft $false `
-            --prerelease ${{ inputs.client_target != 'live' }}
+            --draft "false" `
+            --prerelease "${{ inputs.client_target != 'live' }}"
+            --json
+          $releaseData = $output | ConvertFrom-Json
+          "upload_url=$($releaseData.upload_url)" >> $env:GITHUB_OUTPUT
 
       - name: Upload Release for ${{ inputs.client_target }}
         uses: actions/upload-release-asset@v1
