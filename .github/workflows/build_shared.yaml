@@ -180,7 +180,7 @@ jobs:
         shell: pwsh
         run: |
           Push-Location build/bin/Release
-          7z a -tzip -r ../../MacroQuest.zip *
+          7z a -tzip -r ../MacroQuest.zip *
           Pop-Location
 
       - name: Get Version Information
