@@ -213,13 +213,17 @@ jobs:
             New-Item -Path "${{ github.workspace }}/changelog" -ItemType Directory -ErrorAction SilentlyContinue
           }
           Copy-Item -Path "data/resources/CHANGELOG.md" -Destination "${{ github.workspace }}/changelog/CHANGELOG.md" -Force
-          echo "::set-output name=release_description::$ReleaseDescription"
+          "release_description=$ReleaseDescription" >> $env:GITHUB_OUTPUT
 
       - name: Remove Release 'rel-${{ inputs.client_target }}'
+        shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.MQGITBOT_AUTH }}
         run: |
-          gh release delete rel-${{ inputs.client_target }} --yes
+          $output = gh release delete rel-${{ inputs.client_target }} --yes 2>&1
+          if (-Not($output -like "*release not found*")) {
+            throw $output
+          }
 
       - name: Create Release for ${{ inputs.client_target }}
         id: create_release
