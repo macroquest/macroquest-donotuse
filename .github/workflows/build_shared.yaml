@@ -169,7 +169,7 @@ jobs:
         run: |
           $SignCert = "build/bin/signcert.pfx"
           [IO.File]::WriteAllBytes($SignCert, [Convert]::FromBase64String("${{ secrets.SIGNCERT }}"))
-          $FileList = Get-ChildItem -Path "$ReleasePath/distribution" -Recurse -Include *.exe, *.dll | Where-Object { $_.Name -ne "D3DX9_43.dll" }
+          $FileList = Get-ChildItem -Path "build/bin/release" -Recurse -Include *.exe, *.dll | Where-Object { $_.Name -ne "D3DX9_43.dll" }
           $signtool = (Get-ChildItem -Recurse "${ENV:ProgramFiles(x86)}\Windows Kits" -Filter signtool.exe | Where-Object { $_.FullName -notmatch 'arm' } | Sort-Object LastWriteTime | Select-Object -last 1).FullName
           ForEach ($file in $FileList) {
             & $signtool sign /fd SHA256 /f "$SignCert" /p "${{ secrets.SIGNCERT_PASS }}" /t http://timestamp.digicert.com "$file" | Out-Null
