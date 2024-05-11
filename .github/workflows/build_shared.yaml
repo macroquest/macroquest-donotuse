@@ -40,7 +40,7 @@ jobs:
           }
 
       - name: Checkout plugins that work on Live/Test clients
-        if: ${{ inputs.client_target == 'live' || inputs.client_target == 'test' }}
+        #if: ${{ inputs.client_target == 'live' || inputs.client_target == 'test' }}
         shell: pwsh
         run: |
           $start = Select-String -Path plugin-quick-list.md -Pattern "^# Live/Test only" -CaseSensitive
@@ -54,7 +54,7 @@ jobs:
           }
 
       - name: Checkout plugins that work on Emu clients
-        if: ${{ inputs.client_target == 'emu' }}
+        #if: ${{ inputs.client_target == 'emu' }}
         shell: pwsh
         run: |
           $start = Select-String -Path plugin-quick-list.md -Pattern "^# Emu only" -CaseSensitive
