@@ -151,7 +151,7 @@ jobs:
         run: 7z a -tzip -r build/bin/MacroQuest-Symbols.zip build/bin/Release/*.exe build/bin/Release/*.dll build/bin/Release/*.pdb
 
       - name: Upload Symbols Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: symbols-${{ inputs.client_target }}
           path: build/bin/MacroQuest-Symbols.zip
@@ -224,6 +224,7 @@ jobs:
           if (-Not($output -like "*release not found*")) {
             throw $output
           }
+          exit 0
 
       - name: Create Release for ${{ inputs.client_target }}
         id: create_release
