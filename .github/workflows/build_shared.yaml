@@ -232,14 +232,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.MQGITBOT_AUTH }}
         run: |
-          $output = gh release create rel-${{ inputs.client_target }} `
+          gh release create rel-${{ inputs.client_target }} `
             --title "MacroQuest (${{ inputs.client_target }} server) v$($env:MQVERSION_INFO)" `
             --notes "${{ steps.diff_changelog.outputs.release_description }}" `
             --draft "false" `
             --prerelease "${{ inputs.client_target != 'live' }}" `
-            --json
-          $releaseData = $output | ConvertFrom-Json
-          "upload_url=$($releaseData.upload_url)" >> $env:GITHUB_OUTPUT
+            $(if ($${{ inputs.client_target != 'live' }}) {"--latest"})
+          $output = gh release view "rel-${{ inputs.client_target }}" --json uploadUrl
+          $upload_url = $output | ConvertFrom-Json | Select-Object -ExpandProperty uploadUrl
+          "upload_url=$upload_url)" >> $env:GITHUB_OUTPUT
 
       - name: Upload Release for ${{ inputs.client_target }}
         uses: actions/upload-release-asset@v1
