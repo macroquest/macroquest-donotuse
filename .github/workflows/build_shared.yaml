@@ -227,7 +227,6 @@ jobs:
           exit 0
 
       - name: Create Release for ${{ inputs.client_target }}
-        id: create_release
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.MQGITBOT_AUTH }}
@@ -237,20 +236,7 @@ jobs:
             --notes "${{ steps.diff_changelog.outputs.release_description }}" `
             --draft "false" `
             --prerelease "${{ inputs.client_target != 'live' }}" `
-            $(if ($${{ inputs.client_target != 'live' }}) {"--latest"})
-          $output = gh release view "rel-${{ inputs.client_target }}" --json uploadUrl
-          $upload_url = $output | ConvertFrom-Json | Select-Object -ExpandProperty uploadUrl
-          "upload_url=$upload_url)" >> $env:GITHUB_OUTPUT
-
-      - name: Upload Release for ${{ inputs.client_target }}
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MQGITBOT_AUTH }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: build/bin/MacroQuest.zip
-          asset_name: MacroQuest.zip
-          asset_content_type: application/zip
+            $(if ($${{ inputs.client_target == 'live' }}) {"--latest"}) build/bin/MacroQuest.zip
 
       - name: Update Published Version Information
         shell: pwsh
