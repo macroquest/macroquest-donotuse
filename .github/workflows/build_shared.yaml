@@ -160,9 +160,9 @@ jobs:
         shell: pwsh
         run: |
           Remove-Item -Force build/bin/MacroQuest-Symbols.zip
-          Remove-Item -Recurse -Force build/bin/Release/*.pdb
-          Remove-Item -Recurse -Force build/bin/Release/*.lib
-          Remove-Item -Recurse -Force build/bin/Release/*.exp
+          Get-ChildItem build/bin/Release -Include *.pdb -Recurse | Remove-Item -Force
+          Get-ChildItem build/bin/Release -Include *.lib -Recurse | Remove-Item -Force
+          Get-ChildItem build/bin/Release -Include *.exp -Recurse | Remove-Item -Force
 
       - name: Sign Code
         shell: pwsh
@@ -177,7 +177,11 @@ jobs:
           Remove-Item -Force build/bin/signcert.pfx
 
       - name: Create MacroQuest Archive
-        run: 7z a -tzip -r build/bin/MacroQuest.zip build/bin/Release/*
+        shell: pwsh
+        run: |
+          Push-Location build/bin/Release
+          7z a -tzip -r ../../MacroQuest.zip *
+          Pop-Location
 
       - name: Get Version Information
         shell: pwsh
@@ -230,13 +234,12 @@ jobs:
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.MQGITBOT_AUTH }}
-        run: |
-          gh release create rel-${{ inputs.client_target }} `
-            --title "MacroQuest (${{ inputs.client_target }} server) v$($env:MQVERSION_INFO)" `
-            --notes "${{ steps.diff_changelog.outputs.release_description }}" `
-            --draft "false" `
-            --prerelease "${{ inputs.client_target != 'live' }}" `
-            $(if ($${{ inputs.client_target == 'live' }}) {"--latest"}) build/bin/MacroQuest.zip
+        run: >
+          gh release create rel-${{ inputs.client_target }}
+            --title "MacroQuest (${{ inputs.client_target }} server) v$($env:MQVERSION_INFO)"
+            --notes "${{ steps.diff_changelog.outputs.release_description }}"
+            $(if ($${{ inputs.client_target == 'live' }}) {"--latest"} else {"--prerelease"})
+            build/bin/MacroQuest.zip
 
       - name: Update Published Version Information
         shell: pwsh
