@@ -246,7 +246,7 @@ jobs:
           if (git branch --list ${{ inputs.client_target }}) {
             git -C "$versionDir" checkout ${{ inputs.client_target }}
           } else {
-            git -C "$versionDir" checkout ${{ inputs.client_target }}
+            git -C "$versionDir" checkout -b ${{ inputs.client_target }}
           }
           $branch_name = git -C "$versionDir" rev-parse --abbrev-ref HEAD
           if ($branch_name -ne "${{ inputs.client_target }}") {
