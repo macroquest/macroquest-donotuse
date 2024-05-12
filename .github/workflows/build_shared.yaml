@@ -243,11 +243,7 @@ jobs:
           git clone "https://x-access-token:${{ secrets.MQGITBOT_AUTH }}@github.com/MacroQuest/MQCurrentVersions.git" "$versionDir"
           git -C "$versionDir" config user.email "mqgitbot@gmail.com"
           git -C "$versionDir" config user.name "MQGitBot"
-          if (git branch --list ${{ inputs.client_target }}) {
-            git -C "$versionDir" checkout ${{ inputs.client_target }}
-          } else {
-            git -C "$versionDir" checkout -b ${{ inputs.client_target }}
-          }
+          git -C "$versionDir" checkout ${{ inputs.client_target }}
           $branch_name = git -C "$versionDir" rev-parse --abbrev-ref HEAD
           if ($branch_name -ne "${{ inputs.client_target }}") {
             throw "Failed to checkout branch ${{ inputs.client_target }}"
