@@ -225,7 +225,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.MQGITBOT_AUTH }}
         run: |
           $output = gh release delete rel-${{ inputs.client_target }} --yes 2>&1
-          if (-Not($output -like "*release not found*")) {
+          if (!$? -And -Not($output -like "*release not found*")) {
             throw $output
           }
           exit 0
