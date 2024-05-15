@@ -1,8 +1,13 @@
+<<<<<<< HEAD
 May 26, 2024:
 - Update for test patch
 
 May 10, 2024:
 - Update for test patch
+=======
+May 15, 2024:
+- Update for live patch
+>>>>>>> 7802c7ed (Update for live patch)
 
 April 25, 2024:
 - Adjust timestamps in chat and logging to be in local time (#853, #852).
