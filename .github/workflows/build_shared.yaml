@@ -262,13 +262,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: symbols-${{ inputs.client_target }}
-          path: "${{ env.TEMP }}/MacroQuest-Symbols.zip"
+          path: "C:\Temp\MacroQuest-Symbols.zip"
 
       - name: Unzip Symbols
         shell: pwsh
         run: |
-          $zip = "$ENV:TEMP\MacroQuest-Symbols.zip"
-          $dest = "$ENV:TEMP\MacroQuest-Symbols"
+          $zip = "C:\Temp\MacroQuest-Symbols.zip"
+          $dest = "C:\Temp\MacroQuest-Symbols"
           if (Test-Path -Path $dest) {
             Remove-Item -Path $dest -Recurse -Force
           }
@@ -278,12 +278,13 @@ jobs:
       - name: Update Symbol Server
         shell: pwsh
         run: |
+          $ProjectTitle = $($env:GITHUB_REPOSITORY).Split("/")[1]
           $SymbolDir = "${{ secrets.SYMBOL_SRV_PATH }}"
           $ReleasePath = "${{ env.TEMP }}/MacroQuest-Symbols"
           $symstore = (Get-ChildItem -Recurse "${ENV:ProgramFiles(x86)}\Windows Kits" -Filter symstore.exe | Where-Object { $_.FullName -notmatch 'arm' } | Sort-Object LastWriteTime | Select-Object -last 1).FullName
-          & $symstore add /r /f "$ReleasePath\*.dll" /s $SymbolDir /t "$env:CI_PROJECT_TITLE" /compress | Out-Null
-          & $symstore add /r /f "$ReleasePath\*.exe" /s $SymbolDir /t "$env:CI_PROJECT_TITLE" /compress | Out-Null
-          & $symstore add /r /f "$ReleasePath\*.pdb" /s $SymbolDir /t "$env:CI_PROJECT_TITLE" /compress | Out-Null
+          & $symstore add /r /f "$ReleasePath\*.dll" /s $SymbolDir /t "$ProjectTitle" /compress | Out-Null
+          & $symstore add /r /f "$ReleasePath\*.exe" /s $SymbolDir /t "$ProjectTitle" /compress | Out-Null
+          & $symstore add /r /f "$ReleasePath\*.pdb" /s $SymbolDir /t "$ProjectTitle" /compress | Out-Null
           $agestore = (Get-ChildItem -Recurse "${ENV:ProgramFiles(x86)}\Windows Kits" -Filter agestore.exe | Where-Object { $_.FullName -notmatch 'arm' } | Sort-Object LastWriteTime | Select-Object -last 1).FullName
           & $agestore $SymbolDir /days=60 /s /y  | Out-Null
 
@@ -292,4 +293,5 @@ jobs:
         run: |
           $dest = "$ENV:TEMP\MacroQuest-Symbols"
           Remove-Item -Path $dest -Recurse -Force
+          Remove-Item -Path "C:\Temp\MacroQuest-Symbols.zip" -Force
 
