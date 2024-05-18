@@ -190,7 +190,7 @@ jobs:
       - name: Restore Last Changelog
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/changelog/CHANGELOG.md
+          path: ${{ github.workspace }}/build/changelog/CHANGELOG.md
           key: changelog-${{ env.platform }}-${{ inputs.client_target }}-${{ github.run_id }}
           restore-keys: |
             changelog-${{ env.platform }}-${{ inputs.client_target }}
@@ -200,9 +200,9 @@ jobs:
         shell: pwsh
         run: |
           $ReleaseDescription = "Automated release for ${{ inputs.client_target }}"
-          if (Test-Path "${{ github.workspace }}/changelog/CHANGELOG.md")
+          if (Test-Path "${{ github.workspace }}/build/changelog/CHANGELOG.md")
           {
-            $FileDiff = (Compare-Object (Get-Content "data/resources/CHANGELOG.md") (Get-Content "${{ github.workspace }}/changelog/CHANGELOG.md"))
+            $FileDiff = (Compare-Object (Get-Content "data/resources/CHANGELOG.md") (Get-Content "${{ github.workspace }}/build/changelog/CHANGELOG.md"))
             if ($FileDiff.Count -gt 0)
             {
                 if ($FileDiff[0].SideIndicator -eq '<=')
@@ -214,9 +214,9 @@ jobs:
           }
           else
           {
-            New-Item -Path "${{ github.workspace }}/changelog" -ItemType Directory -ErrorAction SilentlyContinue
+            New-Item -Path "${{ github.workspace }}/build/changelog" -ItemType Directory -ErrorAction SilentlyContinue
           }
-          Copy-Item -Path "data/resources/CHANGELOG.md" -Destination "${{ github.workspace }}/changelog/CHANGELOG.md" -Force
+          Copy-Item -Path "data/resources/CHANGELOG.md" -Destination "${{ github.workspace }}/build/changelog/CHANGELOG.md" -Force
           "release_description=$ReleaseDescription" >> $env:GITHUB_OUTPUT
 
       - name: Remove Release 'rel-${{ inputs.client_target }}'
@@ -239,7 +239,7 @@ jobs:
       - name: Update Published Version Information
         shell: pwsh
         run: |
-          $versionDir = "${{ github.workspace }}/MQCurrentVersions"
+          $versionDir = "${{ github.workspace }}/build/MQCurrentVersions"
           git clone "https://x-access-token:${{ secrets.MQGITBOT_AUTH }}@github.com/MacroQuest/MQCurrentVersions.git" "$versionDir"
           git -C "$versionDir" config user.email "mqgitbot@gmail.com"
           git -C "$versionDir" config user.name "MQGitBot"
@@ -252,3 +252,31 @@ jobs:
           git -C "$versionDir" add CurrentVersion.txt
           git -C "$versionDir" commit -m "Update ${{ inputs.client_target }} version to $($env:MQVERSION_INFO)"
           git -C "$versionDir" push
+
+  update_symbols:
+    if: github.repository == 'macroquest/macroquest-donotuse'
+    needs: build
+    runs-on: [symbol, self-hosted, Windows, X64]
+    steps:
+      - name: Download Symbols Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: symbols-${{ inputs.client_target }}
+          path: "${{ env.TEMP }}/MacroQuest-Symbols.zip"
+
+      - name: Unzip Symbols
+        shell: pwsh
+        run: 7z x -o"${{ env.TEMP }}/MacroQuest-Symbols" "${{ env.TEMP }}/MacroQuest-Symbols.zip"
+
+      - name: Update Symbol Server
+        shell: pwsh
+        run: |
+          $SymbolDir = "${{ secrets.SYMBOL_SRV_PATH }}"
+          $ReleasePath = "${{ env.TEMP }}/MacroQuest-Symbols"
+          $symstore = (Get-ChildItem -Recurse "${ENV:ProgramFiles(x86)}\Windows Kits" -Filter symstore.exe | Where-Object { $_.FullName -notmatch 'arm' } | Sort-Object LastWriteTime | Select-Object -last 1).FullName
+          & $symstore add /r /f "$ReleasePath\*.dll" /s $SymbolDir /t "$env:CI_PROJECT_TITLE" /compress | Out-Null
+          & $symstore add /r /f "$ReleasePath\*.exe" /s $SymbolDir /t "$env:CI_PROJECT_TITLE" /compress | Out-Null
+          & $symstore add /r /f "$ReleasePath\*.pdb" /s $SymbolDir /t "$env:CI_PROJECT_TITLE" /compress | Out-Null
+          $agestore = (Get-ChildItem -Recurse "${ENV:ProgramFiles(x86)}\Windows Kits" -Filter agestore.exe | Where-Object { $_.FullName -notmatch 'arm' } | Sort-Object LastWriteTime | Select-Object -last 1).FullName
+          & $agestore $SymbolDir /days=60 /s /y  | Out-Null
+
