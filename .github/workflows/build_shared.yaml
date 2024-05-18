@@ -280,13 +280,20 @@ jobs:
         run: |
           $ProjectTitle = $($env:GITHUB_REPOSITORY).Split("/")[1]
           $SymbolDir = "${{ secrets.SYMBOL_SRV_PATH }}"
-          $ReleasePath = "${{ env.TEMP }}/MacroQuest-Symbols"
+          $ReleasePath = "C:\Temp\MacroQuest-Symbols"
           $symstore = (Get-ChildItem -Recurse "${ENV:ProgramFiles(x86)}\Windows Kits" -Filter symstore.exe | Where-Object { $_.FullName -notmatch 'arm' } | Sort-Object LastWriteTime | Select-Object -last 1).FullName
+          $LASTEXITCODE = 0
           & $symstore add /r /f "$ReleasePath\*.dll" /s $SymbolDir /t "$ProjectTitle" /compress | Out-Null
           & $symstore add /r /f "$ReleasePath\*.exe" /s $SymbolDir /t "$ProjectTitle" /compress | Out-Null
           & $symstore add /r /f "$ReleasePath\*.pdb" /s $SymbolDir /t "$ProjectTitle" /compress | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to update symbol server"
+          }
           $agestore = (Get-ChildItem -Recurse "${ENV:ProgramFiles(x86)}\Windows Kits" -Filter agestore.exe | Where-Object { $_.FullName -notmatch 'arm' } | Sort-Object LastWriteTime | Select-Object -last 1).FullName
           & $agestore $SymbolDir /days=60 /s /y  | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to age symbol server"
+          }
 
       - name: Remove Symbols
         shell: pwsh
