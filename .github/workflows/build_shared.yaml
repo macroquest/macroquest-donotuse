@@ -262,7 +262,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: symbols-${{ inputs.client_target }}
-          path: C:\Temp\MacroQuest-Symbols.zip
+          path: C:\Temp
 
       - name: Unzip Symbols
         shell: pwsh
