@@ -266,7 +266,14 @@ jobs:
 
       - name: Unzip Symbols
         shell: pwsh
-        run: 7z x -o"${{ env.TEMP }}/MacroQuest-Symbols" "${{ env.TEMP }}/MacroQuest-Symbols.zip"
+        run: |
+          $zip = "$ENV:TEMP\MacroQuest-Symbols.zip"
+          $dest = "$ENV:TEMP\MacroQuest-Symbols"
+          if (Test-Path -Path $dest) {
+            Remove-Item -Path $dest -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $dest
+          Expand-Archive -Path $zip -DestinationPath $dest
 
       - name: Update Symbol Server
         shell: pwsh
@@ -279,4 +286,10 @@ jobs:
           & $symstore add /r /f "$ReleasePath\*.pdb" /s $SymbolDir /t "$env:CI_PROJECT_TITLE" /compress | Out-Null
           $agestore = (Get-ChildItem -Recurse "${ENV:ProgramFiles(x86)}\Windows Kits" -Filter agestore.exe | Where-Object { $_.FullName -notmatch 'arm' } | Sort-Object LastWriteTime | Select-Object -last 1).FullName
           & $agestore $SymbolDir /days=60 /s /y  | Out-Null
+
+      - name: Remove Symbols
+        shell: pwsh
+        run: |
+          $dest = "$ENV:TEMP\MacroQuest-Symbols"
+          Remove-Item -Path $dest -Recurse -Force
 
