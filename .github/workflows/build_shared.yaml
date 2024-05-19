@@ -270,7 +270,7 @@ jobs:
           $zip = "C:\Temp\MacroQuest-Symbols.zip"
           $dest = "C:\Temp\MacroQuest-Symbols"
           if (Test-Path -Path $dest) {
-            Remove-Item -Path $dest -Recurse -Force
+            Get-ChildItem $dest -Recurse | Remove-Item -Force
           }
           New-Item -ItemType Directory -Path $dest
           Expand-Archive -Path $zip -DestinationPath $dest
@@ -298,7 +298,7 @@ jobs:
       - name: Remove Symbols
         shell: pwsh
         run: |
-          $dest = "$ENV:TEMP\MacroQuest-Symbols"
-          Remove-Item -Path $dest -Recurse -Force
+          $dest = "C:\Temp\MacroQuest-Symbols"
+          Get-ChildItem $dest -Recurse | Remove-Item -Force
           Remove-Item -Path "C:\Temp\MacroQuest-Symbols.zip" -Force
 
