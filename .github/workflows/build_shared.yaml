@@ -295,3 +295,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Failed to age symbol server"
           }
+
+      - name: Remove Symbols
+        shell: pwsh
+        run: |
+          $dest = "${{ github.workspace }}\MacroQuest-Symbols"
+          if (Test-Path -Path $dest) {
+            Get-ChildItem $dest -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue -Recurse
+            Remove-Item $dest -Force -Recurse
+          }
+          $dest = ${{ github.workspace }}\MacroQuest-Symbols.zip
+          if (Test-Path -Path $dest) {
+            Remove-Item -Path $dest -Force
+          }
+
