@@ -262,15 +262,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: symbols-${{ inputs.client_target }}
-          path: C:\Temp
+          path: ${{ github.workspace }}
 
       - name: Unzip Symbols
         shell: pwsh
         run: |
-          $zip = "C:\Temp\MacroQuest-Symbols.zip"
-          $dest = "C:\Temp\MacroQuest-Symbols"
+          $zip = "${{ github.workspace }}\MacroQuest-Symbols.zip"
+          $dest = "${{ github.workspace }}\MacroQuest-Symbols"
           if (Test-Path -Path $dest) {
-            Get-ChildItem $dest -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
+            Get-ChildItem $dest -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue -Recurse
+            Remove-Item $dest -Force -Recurse
           }
           New-Item -ItemType Directory -Path $dest
           Expand-Archive -Path $zip -DestinationPath $dest
@@ -280,7 +281,7 @@ jobs:
         run: |
           $ProjectTitle = $($env:GITHUB_REPOSITORY).Split("/")[1]
           $SymbolDir = "${{ secrets.SYMBOL_SRV_PATH }}"
-          $ReleasePath = "C:\Temp\MacroQuest-Symbols"
+          $ReleasePath = "${{ github.workspace }}\MacroQuest-Symbols"
           $symstore = (Get-ChildItem -Recurse "${ENV:ProgramFiles(x86)}\Windows Kits" -Filter symstore.exe | Where-Object { $_.FullName -notmatch 'arm' } | Sort-Object LastWriteTime | Select-Object -last 1).FullName
           $LASTEXITCODE = 0
           & $symstore add /r /f "$ReleasePath\*.dll" /s $SymbolDir /t "$ProjectTitle" /compress | Out-Null
@@ -294,11 +295,3 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Failed to age symbol server"
           }
-
-      - name: Remove Symbols
-        shell: pwsh
-        run: |
-          $dest = "C:\Temp\MacroQuest-Symbols"
-          Get-ChildItem $dest -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
-          Remove-Item -Path "C:\Temp\MacroQuest-Symbols.zip" -Force
-
