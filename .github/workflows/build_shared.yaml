@@ -304,7 +304,7 @@ jobs:
             Get-ChildItem $dest -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue -Recurse
             Remove-Item $dest -Force -Recurse
           }
-          $dest = ${{ github.workspace }}\MacroQuest-Symbols.zip
+          $dest = "${{ github.workspace }}\MacroQuest-Symbols.zip"
           if (Test-Path -Path $dest) {
             Remove-Item -Path $dest -Force
           }
