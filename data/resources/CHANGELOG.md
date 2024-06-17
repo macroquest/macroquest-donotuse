@@ -4,6 +4,8 @@
 =======
 June 16, 2024:
 - Update for test patch
+- Fix MacroQuest.exe now shutting down properly
+- FIx /removeaura not parsing macro arguments (#869).
 
 >>>>>>> e6f789c4 (Update for test patch)
 May 26, 2024:
