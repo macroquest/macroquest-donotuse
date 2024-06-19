@@ -1,7 +1,13 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+June 19, 2024:
+- Update for live patch
+
+>>>>>>> 24b8b569 (Update for live patch)
 June 16, 2024:
 - Update for test patch
 - Fix MacroQuest.exe now shutting down properly
