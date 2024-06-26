@@ -268,13 +268,6 @@ jobs:
             ${{ runner.os }}-luarocks-${{ env.platform }}-
             ${{ runner.os }}-luarocks-
 
-      -name: TODO
-        shell: pwsh
-        run: |
-          Write-Host "TODO:"
-          Write-Host "   Genericize cfg files and upload them"
-          Write-Host "   Add luarocks binaries"
-
       - name: Update LuaRocks binaries
         shell: pwsh
         run: |
