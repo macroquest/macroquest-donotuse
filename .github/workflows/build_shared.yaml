@@ -289,7 +289,7 @@ jobs:
           New-Item -Path "${{ github.workspace }}/build/Lua" -ItemType Directory -ErrorAction SilentlyContinue
 
           If (-NOT (Test-Path $LuaDir -PathType Container)) {
-            git clone "https://x-access-token:${{ secrets.MQGITBOT_AUTH }}@github.com/macroquest/${{ vars.LUAROCKS_INSTALL_REPO }}.git" "$LuaDir"
+            git clone "https://x-access-token:${{ secrets.MQGITBOT_AUTH }}@github.com/macroquest/${{ vars.LUAROCKS_INSTALL_REPO }}.git" "$LuaDir\.."
           } else {
             git -C "$LuaDir" pull
           }
