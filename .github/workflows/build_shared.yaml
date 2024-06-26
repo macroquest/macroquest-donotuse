@@ -272,14 +272,15 @@ jobs:
         shell: pwsh
         run: |
           $debug = $false
-          $LuaDir = "${{ github.workspace }}\build\Lua\LuaRocks\LuaRocks"
+          $LuaCloneDir = "${{ github.workspace }}\build\Lua\LuaRocks"
+          $LuaRocksDir = "$LuaCloneDir\LuaRocks"
           $GitFolder = "${{ github.workspace }}\build\Lua\LuaRockServer"
           $LuaRockServer = "$GitFolder"
           $LuaRockServerRoot = "$LuaRockServer"
           $LuaYaml = "$LuaRockServerRoot\mq_luarocks.yaml"
           $GitURL = "https://x-access-token:${{ secrets.MQGITBOT_AUTH }}@github.com/macroquest/luarocks.git"
           $Platform = "$(if ($${{ inputs.client_target == 'emu' }}) {"x86"} else {"x64"})"
-          $env:LUAROCKS_CONFIG = "$LuaDir\lua_working_config_$($Platform).cfg"
+          $env:LUAROCKS_CONFIG = "$LuaRocksDir\luarocks_working_config_$($Platform).cfg"
           $systreeNode = "\$Platform"
           $vcpkg_mq = "${{ github.workspace }}\tools\build_scripts\vcpkg_mq.ps1"
 
@@ -288,15 +289,15 @@ jobs:
           # Create Lua folder if it does not exist:
           New-Item -Path "${{ github.workspace }}/build/Lua" -ItemType Directory -ErrorAction SilentlyContinue
 
-          If (-NOT (Test-Path $LuaDir -PathType Container)) {
-            git clone "https://x-access-token:${{ secrets.MQGITBOT_AUTH }}@github.com/macroquest/${{ vars.LUAROCKS_INSTALL_REPO }}.git" "$LuaDir\.."
+          If (-NOT (Test-Path $LuaCloneDir -PathType Container)) {
+            git clone "https://x-access-token:${{ secrets.MQGITBOT_AUTH }}@github.com/macroquest/${{ vars.LUAROCKS_INSTALL_REPO }}.git" "$LuaCloneDir"
           } else {
-            git -C "$LuaDir" pull
+            git -C "$LuaCloneDir" pull
           }
 
-          $in_config = Get-Content "$LuaDir\luarocks_config_$($Platform).cfg"
-          $out_config = $in_config -replace "LUA_REPLACE_PATH_FSLASH", "$($LuaDir -replace '\\', '/')"
-          $out_config = $out_config -replace "LUA_REPLACE_PATH_BSLASH", "$($LuaDir -replace '\\', '\\')"
+          $in_config = Get-Content "$LuaRocksDir\luarocks_config_$($Platform).cfg"
+          $out_config = $in_config -replace "LUA_REPLACE_PATH_FSLASH", "$($LuaRocksDir -replace '\\', '/')"
+          $out_config = $out_config -replace "LUA_REPLACE_PATH_BSLASH", "$($LuaRocksDir -replace '\\', '\\')"
           $out_config = $out_config -replace "MQROOT_REPLACE_PATH_FSLASH", "$(\"${{ github.workspace }}\" -replace '\\', '/')"
           $out_config = $out_config -replace "MQROOT_REPLACE_PATH_BSLASH", "$(\"${{ github.workspace }}\" -replace '\\', '\\')"
           Set-Content -Path "$($env:LUAROCKS_CONFIG)" -Value $out_config
@@ -347,8 +348,8 @@ jobs:
           }
 
           # Remove the old vcpkg_mq.txt so all output is from this script
-          if (Test-Path $LuaDir/vcpkg_mq.txt -PathType Leaf) {
-            Remove-Item -Force -Path $LuaDir/vcpkg_mq.txt
+          if (Test-Path $LuaRocksDir/vcpkg_mq.txt -PathType Leaf) {
+            Remove-Item -Force -Path $LuaRocksDir/vcpkg_mq.txt
           }
 
           if (-NOT (Test-Path $LuaRockServer -PathType Container)) {
@@ -361,7 +362,7 @@ jobs:
           $yaml = ConvertFrom-YAML $content
 
           if ($yaml -And ($yaml.Count -gt 0)) {
-              Set-Location $LuaDir
+              Set-Location $LuaRocksDir
 
               $updateManifest = $false
               ForEach ($LuaRock in $yaml.Keys) {
@@ -437,7 +438,7 @@ jobs:
                 if (-NOT $installModule) {
                     if ($yaml[$LuaRock].files.Count -gt 0) {
                         $yaml[$LuaRock].files | ForEach-Object {
-                            $requiredFilePath = "$($LuaDir)\$luajitVersion$($systreeNode)\systree\lib\lua\5.1\$($_)"
+                            $requiredFilePath = "$($LuaRocksDir)\$luajitVersion$($systreeNode)\systree\lib\lua\5.1\$($_)"
                             if (-NOT (Test-Path $requiredFilePath -PathType Leaf)) {
                                 # Write-Debug "Installing $LuaRock because required file does not exist: $requiredFilePath"
                                 $installModule = $true
@@ -455,10 +456,10 @@ jobs:
                     # Write-Debug "Checking Dependencies"
                     if ($yaml[$LuaRock].external_deps.Count -gt 0) {
                         $yaml[$LuaRock].external_deps | ForEach-Object {
-                            $_ | Out-File $LuaDir/vcpkg_mq.txt
+                            $_ | Out-File $LuaRocksDir/vcpkg_mq.txt
                         }
                         # Write-Debug "Running vcpkg_mq for dependencies..."
-                        & "$vcpkg_mq" -ProjectName LuaRocks -ProjectDirectory "$LuaDir" -MQRoot "$($env:CI_PROJECT_DIR)" -Platform $Platform -Toolchain v143
+                        & "$vcpkg_mq" -ProjectName LuaRocks -ProjectDirectory "$LuaRocksDir" -MQRoot "$($env:CI_PROJECT_DIR)" -Platform $Platform -Toolchain v143
                         # Write-Debug "Done Running vcpkg_mq"
                     } else {
                         # Write-Debug "No dependencies needed"
@@ -478,7 +479,7 @@ jobs:
                             $filesGood = $true
                             if ($yaml[$LuaRock].files.Count -gt 0) {
                                 $yaml[$LuaRock].files | ForEach-Object {
-                                    if (-NOT (Test-Path "$($LuaDir)$($systreeNode)\systree\lib\lua\5.1\$($_)" -PathType Leaf)) {
+                                    if (-NOT (Test-Path "$($LuaRocksDir)$($systreeNode)\systree\lib\lua\5.1\$($_)" -PathType Leaf)) {
                                         $filesGood = $false
                                         Write-Error "LuaRocks error:  $LuaRock missing file $_"
                                         # Write-Debug $LuaInstallOutput
@@ -493,8 +494,8 @@ jobs:
                             }
                             if ($filesGood) {
                                 Set-Location $LuaRockServer
-                                $LuaPackOutput = (& "$LuaDir\luarocks" pack $LuaRock)
-                                Set-Location $LuaDir
+                                $LuaPackOutput = (& "$LuaRocksDir\luarocks" pack $LuaRock)
+                                Set-Location $LuaRocksDir
                                 $updateManifest = $true
                             }
                         }
